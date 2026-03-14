@@ -19,9 +19,14 @@ async fn fetch(
     _env: worker::Env,
     _ctx: worker::Context,
 ) -> worker::Result<Response<Body>> {
-    let server = Arc::new(Server::builder().build());
+    let server = Arc::new(
+        Server::builder()
+            .server_info(env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"))
+            .build(),
+    );
 
     let mut router = Router::new()
+        .route("/healthz", get(|| async { "OK" }))
         .route("/mcp", post(handle_mcp))
         .route("/", get(root))
         .with_state(server);
