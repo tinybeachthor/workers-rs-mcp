@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use axum::{
     body::Body,
     extract::State,
@@ -8,10 +9,26 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use mcpserver::{JsonRpcRequest, McpResponse, Server};
+use mcpserver::{
+    text_result, JsonRpcRequest, McpError, McpResponse, Server, ToolHandler, ToolResult,
+};
+use serde_json::Value;
 use tower_service::Service;
 use uuid::Uuid;
 use worker::event;
+
+struct EchoHandler;
+
+#[async_trait]
+impl ToolHandler for EchoHandler {
+    async fn call(&self, args: Value, _context: Value) -> Result<ToolResult, McpError> {
+        let message = args
+            .get("message")
+            .and_then(|v| v.as_str())
+            .unwrap_or("(empty)");
+        Ok(text_result(format!("echo: {}", message)))
+    }
+}
 
 #[event(fetch)]
 async fn fetch(
@@ -19,17 +36,20 @@ async fn fetch(
     _env: worker::Env,
     _ctx: worker::Context,
 ) -> worker::Result<Response<Body>> {
-    let server = Arc::new(
-        Server::builder()
-            .server_info(env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"))
-            .build(),
-    );
+    let mut mcp_router = Server::builder()
+        .tools_file("")
+        .server_info(env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"))
+        .build();
+
+    mcp_router.handle_tool("echo", Arc::new(EchoHandler));
+
+    let mcp_server = Arc::new(mcp_router);
 
     let mut router = Router::new()
         .route("/healthz", get(|| async { "OK" }))
         .route("/mcp", post(handle_mcp))
         .route("/", get(root))
-        .with_state(server);
+        .with_state(mcp_server);
 
     Ok(router.call(req).await?)
 }

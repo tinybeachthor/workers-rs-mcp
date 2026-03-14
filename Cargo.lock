@@ -1114,8 +1114,10 @@ dependencies = [
 name = "workers-rs-mcp"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "axum",
  "mcpserver",
+ "serde_json",
  "tower-service",
  "uuid",
  "worker",
