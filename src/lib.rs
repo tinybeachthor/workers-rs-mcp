@@ -35,7 +35,7 @@ async fn fetch(
 }
 
 pub async fn root() -> &'static str {
-    "Hello Axum!"
+    concat!(env!("CARGO_PKG_NAME"), " ", env!("CARGO_PKG_VERSION"))
 }
 
 async fn handle_mcp(
