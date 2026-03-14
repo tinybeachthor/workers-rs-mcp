@@ -38,7 +38,7 @@ async fn fetch(
 ) -> worker::Result<Response<Body>> {
     let mut mcp_router = Server::builder()
         .server_info(env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"))
-        .tools_file("mcp/tools.json")
+        .tools_json(include_bytes!("../mcp/tools.json"))
         .build();
 
     mcp_router.handle_tool("echo", Arc::new(EchoHandler));
